@@ -1,48 +1,95 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cicd-demo-deployment
+  name: cicd-demo
   namespace: production
   labels:
     app: cicd-demo
+    tier: backend
+    environment: production
 spec:
   replicas: 2
-  selector:
-    matchLabels:
-      app: cicd-demo
+
+  revisionHistoryLimit: 5
+
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      maxSurge: 25%
+      maxUnavailable: 25%
+
+  selector:
+    matchLabels:
+      app: cicd-demo
+
   template:
     metadata:
       labels:
         app: cicd-demo
+        tier: backend
     spec:
+
+      terminationGracePeriodSeconds: 30
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+
       containers:
-        - name: cicd-demo-container
-          image: YOUR_DOCKERHUB_USERNAME/cicd-demo:latest
+        - name: cicd-demo
+
+          image: rohan700/cicd-demo:v1
+          imagePullPolicy: Always
+
           ports:
-            - containerPort: 8080
+            - name: http
+              containerPort: 8080
+
+          env:
+            - name: NODE_ENV
+              value: "production"
+
           resources:
             requests:
-              memory: "64Mi"
-              cpu: "50m"
-            limits:
               memory: "128Mi"
-              cpu: "200m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: cicd-demo-service
-  namespace: production
-spec:
-  selector:
-    app: cicd-demo
-  ports:
-    - port: 80
-      targetPort: 8080
-      nodePort: 30080
-  type: NodePort
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 5
+
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
