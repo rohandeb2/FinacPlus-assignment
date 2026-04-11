@@ -12,7 +12,8 @@ pipeline {
     }
 
     triggers {
-        pollSCM('H/2 * * * *')
+        githubPush()         // Triggers instantly on git push via webhook
+        pollSCM('H/5 * * * *') // Fallback polling every 5 min (in case webhook fails)
     }
 
     options {
@@ -91,6 +92,8 @@ pipeline {
         }
         failure {
             echo "==> BUILD FAILED - check console output above"
+            // Optional: add email/Slack notification here
+            // mail to: 'you@example.com', subject: "FAILED: ${env.JOB_NAME}", body: "Check: ${env.BUILD_URL}"
         }
         always {
             sh "docker rmi ${FULL_IMAGE_NAME} || true"
