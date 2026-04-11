@@ -5,10 +5,11 @@ pipeline {
         APP_NAME        = "cicd-demo"
         DOCKER_REGISTRY = "rohan700"
         IMAGE_NAME      = "${DOCKER_REGISTRY}/myapp"
-
         K8S_NAMESPACE   = "production"
         K8S_DEPLOYMENT  = "cicd-demo"
         K8S_CONTAINER   = "cicd-demo"
+        // Initialize so post{} block never sees a null variable
+        FULL_IMAGE_NAME = "${DOCKER_REGISTRY}/myapp:latest"
     }
 
     triggers {
@@ -33,26 +34,22 @@ pipeline {
             }
         }
 
-        stage('Set Image Tag') {
-            steps {
-                script {
-                    IMAGE_TAG = sh(
-                        script: "git rev-parse --short HEAD",
-                        returnStdout: true
-                    ).trim()
-
-                    FULL_IMAGE_NAME = "${IMAGE_NAME}:${IMAGE_TAG}"
-
-                    echo "Image: ${FULL_IMAGE_NAME}"
-                }
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 echo "==> Building Docker Image..."
                 script {
-                    docker.build("${FULL_IMAGE_NAME}", ".")
+                    // Use env. prefix so variable is accessible in ALL stages and post{}
+                    def imageTag = sh(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    env.IMAGE_TAG       = imageTag
+                    env.FULL_IMAGE_NAME = "${IMAGE_NAME}:${imageTag}"
+
+                    echo "==> Image tag: ${env.FULL_IMAGE_NAME}"
+
+                    docker.build("${env.FULL_IMAGE_NAME}", ".")
                 }
             }
         }
@@ -61,7 +58,7 @@ pipeline {
             steps {
                 echo "==> Running tests..."
                 script {
-                    docker.image("${FULL_IMAGE_NAME}").inside {
+                    docker.image("${env.FULL_IMAGE_NAME}").inside {
                         sh 'npm test || echo "No tests found, skipping..."'
                     }
                 }
@@ -73,11 +70,8 @@ pipeline {
                 echo "==> Pushing to Docker Hub..."
                 script {
                     docker.withRegistry('', 'docker-hub-credentials') {
-
-                        docker.image("${FULL_IMAGE_NAME}").push()
-
-                        // also push latest
-                        docker.image("${FULL_IMAGE_NAME}").push('latest')
+                        docker.image("${env.FULL_IMAGE_NAME}").push()
+                        docker.image("${env.FULL_IMAGE_NAME}").push('latest')
                     }
                 }
             }
@@ -86,20 +80,17 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 echo "==> Deploying to Kubernetes..."
-
                 withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG')]) {
-                    script {
-                        sh """
-                            kubectl set image deployment/${K8S_DEPLOYMENT} \
-                            ${K8S_CONTAINER}=${FULL_IMAGE_NAME} \
+                    sh """
+                        kubectl set image deployment/${K8S_DEPLOYMENT} \
+                            ${K8S_CONTAINER}=${env.FULL_IMAGE_NAME} \
                             -n ${K8S_NAMESPACE}
 
-                            kubectl rollout status deployment/${K8S_DEPLOYMENT} \
+                        kubectl rollout status deployment/${K8S_DEPLOYMENT} \
                             -n ${K8S_NAMESPACE} --timeout=120s
 
-                            kubectl get pods -n ${K8S_NAMESPACE} -l app=${APP_NAME}
-                        """
-                    }
+                        kubectl get pods -n ${K8S_NAMESPACE} -l app=${APP_NAME}
+                    """
                 }
             }
         }
@@ -107,13 +98,13 @@ pipeline {
 
     post {
         success {
-            echo "✅ SUCCESS: ${FULL_IMAGE_NAME} deployed"
+            echo "✅ SUCCESS: ${env.FULL_IMAGE_NAME} deployed to ${K8S_NAMESPACE}"
         }
         failure {
-            echo "❌ FAILED: Check logs"
+            echo "❌ FAILED: ${env.FULL_IMAGE_NAME} — check logs above"
         }
         always {
-            sh "docker rmi ${FULL_IMAGE_NAME} || true"
+            sh "docker rmi ${env.FULL_IMAGE_NAME} || true"
             cleanWs()
         }
     }
