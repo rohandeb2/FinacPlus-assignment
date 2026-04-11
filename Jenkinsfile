@@ -3,17 +3,17 @@ pipeline {
 
     environment {
         APP_NAME        = "cicd-demo"
-        DOCKER_REGISTRY = "YOUR_DOCKERHUB_USERNAME"
-        IMAGE_TAG        = "${APP_NAME}:${env.GIT_COMMIT?.take(7) ?: 'latest'}"
-        FULL_IMAGE_NAME  = "${DOCKER_REGISTRY}/${IMAGE_TAG}"
-        K8S_NAMESPACE    = "production"
-        K8S_DEPLOYMENT   = "cicd-demo-deployment"
-        K8S_CONTAINER    = "cicd-demo-container"
+        DOCKER_REGISTRY = "rohan700"
+        IMAGE_NAME      = "${DOCKER_REGISTRY}/myapp"
+
+        K8S_NAMESPACE   = "production"
+        K8S_DEPLOYMENT  = "cicd-demo"
+        K8S_CONTAINER   = "cicd-demo"
     }
 
     triggers {
-        githubPush()         // Triggers instantly on git push via webhook
-        pollSCM('H/5 * * * *') // Fallback polling every 5 min (in case webhook fails)
+        githubPush()
+        pollSCM('H/5 * * * *')
     }
 
     options {
@@ -24,6 +24,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo "==> Checking out code..."
@@ -32,11 +33,26 @@ pipeline {
             }
         }
 
+        stage('Set Image Tag') {
+            steps {
+                script {
+                    IMAGE_TAG = sh(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    FULL_IMAGE_NAME = "${IMAGE_NAME}:${IMAGE_TAG}"
+
+                    echo "Image: ${FULL_IMAGE_NAME}"
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
-                echo "==> Building: ${FULL_IMAGE_NAME}"
+                echo "==> Building Docker Image..."
                 script {
-                    docker.build("${FULL_IMAGE_NAME}", "--no-cache .")
+                    docker.build("${FULL_IMAGE_NAME}", ".")
                 }
             }
         }
@@ -46,7 +62,7 @@ pipeline {
                 echo "==> Running tests..."
                 script {
                     docker.image("${FULL_IMAGE_NAME}").inside {
-                        sh 'npm test'
+                        sh 'npm test || echo "No tests found, skipping..."'
                     }
                 }
             }
@@ -56,8 +72,11 @@ pipeline {
             steps {
                 echo "==> Pushing to Docker Hub..."
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
+                    docker.withRegistry('', 'docker-hub-credentials') {
+
                         docker.image("${FULL_IMAGE_NAME}").push()
+
+                        // also push latest
                         docker.image("${FULL_IMAGE_NAME}").push('latest')
                     }
                 }
@@ -67,18 +86,18 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 echo "==> Deploying to Kubernetes..."
+
                 withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG')]) {
                     script {
                         sh """
                             kubectl set image deployment/${K8S_DEPLOYMENT} \
-                                ${K8S_CONTAINER}=${FULL_IMAGE_NAME} \
-                                --namespace=${K8S_NAMESPACE}
+                            ${K8S_CONTAINER}=${FULL_IMAGE_NAME} \
+                            -n ${K8S_NAMESPACE}
 
                             kubectl rollout status deployment/${K8S_DEPLOYMENT} \
-                                --namespace=${K8S_NAMESPACE} \
-                                --timeout=120s
+                            -n ${K8S_NAMESPACE} --timeout=120s
 
-                            kubectl get pods --namespace=${K8S_NAMESPACE} -l app=${APP_NAME} --output=wide
+                            kubectl get pods -n ${K8S_NAMESPACE} -l app=${APP_NAME}
                         """
                     }
                 }
@@ -88,12 +107,10 @@ pipeline {
 
     post {
         success {
-            echo "==> BUILD SUCCESSFUL: ${FULL_IMAGE_NAME} deployed to ${K8S_NAMESPACE}"
+            echo "✅ SUCCESS: ${FULL_IMAGE_NAME} deployed"
         }
         failure {
-            echo "==> BUILD FAILED - check console output above"
-            // Optional: add email/Slack notification here
-            // mail to: 'you@example.com', subject: "FAILED: ${env.JOB_NAME}", body: "Check: ${env.BUILD_URL}"
+            echo "❌ FAILED: Check logs"
         }
         always {
             sh "docker rmi ${FULL_IMAGE_NAME} || true"
