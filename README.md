@@ -260,22 +260,22 @@ curl http://$(minikube ip):30080
 ## Proof:
 
 <div align="center">
-  <img src="img/2(2).png" >
+  <img src="img/2 (2).png" >
 </div>
 <div align="center">
-  <img src="img/3(2).png" >
+  <img src="img/3 (2).png" >
 </div>
 <div align="center">
-  <img src="img/4(2).png" >
+  <img src="img/4 (2).png" >
 </div>
 <div align="center">
-  <img src="img/5(2).png" >
+  <img src="img/5 (2).png" >
 </div>
 <div align="center">
-  <img src="img/6(2).png" >
+  <img src="img/6 (2).png" >
 </div>
 <div align="center">
-  <img src="img/7(2).png" >
+  <img src="img/7 (2).png" >
 </div>
 <div align="center">
   <img src="img/8.png" >
