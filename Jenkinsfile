@@ -1,15 +1,17 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'APP_NAME',        defaultValue: 'cicd-demo',       description: 'Application name')
+        string(name: 'DOCKER_REGISTRY', defaultValue: 'rohan700',        description: 'Docker Hub username')
+        string(name: 'IMAGE_NAME',      defaultValue: 'rohan700/my-app', description: 'Full image name')
+        string(name: 'K8S_NAMESPACE',   defaultValue: 'production',      description: 'Kubernetes namespace to deploy to')
+        string(name: 'K8S_DEPLOYMENT',  defaultValue: 'cicd-demo',       description: 'Kubernetes deployment name')
+        string(name: 'K8S_CONTAINER',   defaultValue: 'cicd-demo',       description: 'Container name inside the pod')
+    }
+
     environment {
-        APP_NAME        = "cicd-demo"
-        DOCKER_REGISTRY = "rohan700"
-        IMAGE_NAME      = "${DOCKER_REGISTRY}/my-app"
-        K8S_NAMESPACE   = "production"
-        K8S_DEPLOYMENT  = "cicd-demo"
-        K8S_CONTAINER   = "cicd-demo"
-        // Initialize so post{} block never sees a null variable
-        FULL_IMAGE_NAME = "${DOCKER_REGISTRY}/my-app:v1"
+        FULL_IMAGE_NAME = "${params.DOCKER_REGISTRY}/my-app:v1"
     }
 
     triggers {
@@ -38,14 +40,13 @@ pipeline {
             steps {
                 echo "==> Building Docker Image..."
                 script {
-                    // Use env. prefix so variable is accessible in ALL stages and post{}
                     def imageTag = sh(
                         script: "git rev-parse --short HEAD",
                         returnStdout: true
                     ).trim()
 
                     env.IMAGE_TAG       = imageTag
-                    env.FULL_IMAGE_NAME = "${IMAGE_NAME}:${imageTag}"
+                    env.FULL_IMAGE_NAME = "${params.IMAGE_NAME}:${imageTag}"
 
                     echo "==> Image tag: ${env.FULL_IMAGE_NAME}"
 
@@ -82,14 +83,14 @@ pipeline {
                 echo "==> Deploying to Kubernetes..."
                 withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG')]) {
                     sh """
-                        kubectl set image deployment/${K8S_DEPLOYMENT} \
-                            ${K8S_CONTAINER}=${env.FULL_IMAGE_NAME} \
-                            -n ${K8S_NAMESPACE}
+                        kubectl set image deployment/${params.K8S_DEPLOYMENT} \
+                            ${params.K8S_CONTAINER}=${env.FULL_IMAGE_NAME} \
+                            -n ${params.K8S_NAMESPACE}
 
-                        kubectl rollout status deployment/${K8S_DEPLOYMENT} \
-                            -n ${K8S_NAMESPACE} --timeout=120s
+                        kubectl rollout status deployment/${params.K8S_DEPLOYMENT} \
+                            -n ${params.K8S_NAMESPACE} --timeout=120s
 
-                        kubectl get pods -n ${K8S_NAMESPACE} -l app=${APP_NAME}
+                        kubectl get pods -n ${params.K8S_NAMESPACE} -l app=${params.APP_NAME}
                     """
                 }
             }
@@ -98,10 +99,16 @@ pipeline {
 
     post {
         success {
-            echo "✅ SUCCESS: ${env.FULL_IMAGE_NAME} deployed to ${K8S_NAMESPACE}"
+            echo "✅ SUCCESS: ${env.FULL_IMAGE_NAME} deployed to ${params.K8S_NAMESPACE}"
         }
         failure {
-            echo "❌ FAILED: ${env.FULL_IMAGE_NAME} — check logs above"
+            echo "❌ FAILED: ${env.FULL_IMAGE_NAME} — rolling back..."
+            withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG')]) {
+                sh """
+                    kubectl rollout undo deployment/${params.K8S_DEPLOYMENT} \
+                        -n ${params.K8S_NAMESPACE} || true
+                """
+            }
         }
         always {
             sh "docker rmi ${env.FULL_IMAGE_NAME} || true"
