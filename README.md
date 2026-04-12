@@ -260,9 +260,6 @@ curl http://$(minikube ip):30080
 ## Proof:
 
 <div align="center">
-  <img src="img/1.png" >
-</div>
-<div align="center">
   <img src="img/2(2).png" >
 </div>
 <div align="center">
