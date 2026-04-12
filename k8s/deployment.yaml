@@ -24,7 +24,6 @@ spec:
     metadata:
       labels:
         app: cicd-demo
-        tier: backend
     spec:
 
       terminationGracePeriodSeconds: 30
