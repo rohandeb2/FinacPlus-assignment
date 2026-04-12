@@ -4,12 +4,12 @@ pipeline {
     environment {
         APP_NAME        = "cicd-demo"
         DOCKER_REGISTRY = "rohan700"
-        IMAGE_NAME      = "${DOCKER_REGISTRY}/myapp"
+        IMAGE_NAME      = "${DOCKER_REGISTRY}/my-app"
         K8S_NAMESPACE   = "production"
         K8S_DEPLOYMENT  = "cicd-demo"
         K8S_CONTAINER   = "cicd-demo"
         // Initialize so post{} block never sees a null variable
-        FULL_IMAGE_NAME = "${DOCKER_REGISTRY}/myapp:latest"
+        FULL_IMAGE_NAME = "${DOCKER_REGISTRY}/my-app:latest"
     }
 
     triggers {
