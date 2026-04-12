@@ -9,7 +9,7 @@ pipeline {
         K8S_DEPLOYMENT  = "cicd-demo"
         K8S_CONTAINER   = "cicd-demo"
         // Initialize so post{} block never sees a null variable
-        FULL_IMAGE_NAME = "${DOCKER_REGISTRY}/my-app:latest"
+        FULL_IMAGE_NAME = "${DOCKER_REGISTRY}/my-app:v1"
     }
 
     triggers {
