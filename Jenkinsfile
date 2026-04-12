@@ -31,8 +31,15 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "==> Checking out code..."
-                checkout scm
-                sh 'git log -1 --oneline'
+                script {
+                    try {
+                        checkout scm
+                        sh 'git log -1 --oneline'
+                    } catch (Exception e) {
+                        echo "❌ Checkout failed: ${e.message}"
+                        error("Stopping pipeline — checkout failed")
+                    }
+                }
             }
         }
 
@@ -40,17 +47,22 @@ pipeline {
             steps {
                 echo "==> Building Docker Image..."
                 script {
-                    def imageTag = sh(
-                        script: "git rev-parse --short HEAD",
-                        returnStdout: true
-                    ).trim()
+                    try {
+                        def imageTag = sh(
+                            script: "git rev-parse --short HEAD",
+                            returnStdout: true
+                        ).trim()
 
-                    env.IMAGE_TAG       = imageTag
-                    env.FULL_IMAGE_NAME = "${params.IMAGE_NAME}:${imageTag}"
+                        env.IMAGE_TAG       = imageTag
+                        env.FULL_IMAGE_NAME = "${params.IMAGE_NAME}:${imageTag}"
 
-                    echo "==> Image tag: ${env.FULL_IMAGE_NAME}"
+                        echo "==> Image tag: ${env.FULL_IMAGE_NAME}"
 
-                    docker.build("${env.FULL_IMAGE_NAME}", ".")
+                        docker.build("${env.FULL_IMAGE_NAME}", ".")
+                    } catch (Exception e) {
+                        echo "❌ Build failed: ${e.message}"
+                        error("Stopping pipeline — build failed")
+                    }
                 }
             }
         }
@@ -59,8 +71,13 @@ pipeline {
             steps {
                 echo "==> Running tests..."
                 script {
-                    docker.image("${env.FULL_IMAGE_NAME}").inside {
-                        sh 'npm test || echo "No tests found, skipping..."'
+                    try {
+                        docker.image("${env.FULL_IMAGE_NAME}").inside {
+                            sh 'npm test || echo "No tests found, skipping..."'
+                        }
+                    } catch (Exception e) {
+                        echo "❌ Tests failed: ${e.message}"
+                        error("Stopping pipeline — tests failed")
                     }
                 }
             }
@@ -70,9 +87,14 @@ pipeline {
             steps {
                 echo "==> Pushing to Docker Hub..."
                 script {
-                    docker.withRegistry('', 'docker-hub-credentials') {
-                        docker.image("${env.FULL_IMAGE_NAME}").push()
-                        docker.image("${env.FULL_IMAGE_NAME}").push('latest')
+                    try {
+                        docker.withRegistry('', 'docker-hub-credentials') {
+                            docker.image("${env.FULL_IMAGE_NAME}").push()
+                            docker.image("${env.FULL_IMAGE_NAME}").push('latest')
+                        }
+                    } catch (Exception e) {
+                        echo "❌ Push failed: ${e.message}"
+                        error("Stopping pipeline — image push failed")
                     }
                 }
             }
@@ -81,17 +103,24 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 echo "==> Deploying to Kubernetes..."
-                withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG')]) {
-                    sh """
-                        kubectl set image deployment/${params.K8S_DEPLOYMENT} \
-                            ${params.K8S_CONTAINER}=${env.FULL_IMAGE_NAME} \
-                            -n ${params.K8S_NAMESPACE}
+                script {
+                    try {
+                        withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG')]) {
+                            sh """
+                                kubectl set image deployment/${params.K8S_DEPLOYMENT} \
+                                    ${params.K8S_CONTAINER}=${env.FULL_IMAGE_NAME} \
+                                    -n ${params.K8S_NAMESPACE}
 
-                        kubectl rollout status deployment/${params.K8S_DEPLOYMENT} \
-                            -n ${params.K8S_NAMESPACE} --timeout=120s
+                                kubectl rollout status deployment/${params.K8S_DEPLOYMENT} \
+                                    -n ${params.K8S_NAMESPACE} --timeout=120s
 
-                        kubectl get pods -n ${params.K8S_NAMESPACE} -l app=${params.APP_NAME}
-                    """
+                                kubectl get pods -n ${params.K8S_NAMESPACE} -l app=${params.APP_NAME}
+                            """
+                        }
+                    } catch (Exception e) {
+                        echo "❌ Deploy failed: ${e.message}"
+                        error("Stopping pipeline — deployment failed")
+                    }
                 }
             }
         }
