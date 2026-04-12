@@ -25,7 +25,9 @@ The flow:
 
 ## Architecture Diagram
 
-<!-- Add your architecture diagram image here -->
+<div align="center">
+  <img src="img/1.png" >
+</div>
 
 ---
 
