@@ -14,7 +14,7 @@ This project sets up a complete CI/CD pipeline that automatically builds and dep
 The flow is:
 1. Developer pushes code to GitHub
 2. GitHub sends a webhook to Jenkins
-3. Jienkins builds a Docker image
+3. Jenkins builds a Docker image
 4. Jenkins runs tests inside the container
 5. Jenkins pushes the image to Docker Hub
 6. Jenkins deploys the new image to Kubernetes
