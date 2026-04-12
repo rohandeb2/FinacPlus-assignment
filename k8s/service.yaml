@@ -4,9 +4,7 @@ metadata:
   name: cicd-demo
   namespace: production
   labels:
-    app: cicd-demo
-    environment: production
-spec:
+    app: cicd-demospec:
   type: NodePort
   selector:
     app: cicd-demo
