@@ -35,7 +35,7 @@ spec:
       containers:
         - name: cicd-demo
 
-          image: rohan700/cicd-demo:v1
+          image: rohan700/my-app:v1
           imagePullPolicy: Always
 
           ports:
