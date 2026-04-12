@@ -177,6 +177,9 @@ sudo usermod -aG ubuntu jenkins
 sudo systemctl restart jenkins
 ```
 
+cat ~/.kube/config
+# Upload this file in Jenkins → Credentials → kubeconfig-credentials
+
 Upload kubeconfig to Jenkins:
 - Jenkins -> Credentials -> Add Credential
 - Kind: Secret file, upload /home/ubuntu/.kube/config
