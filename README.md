@@ -178,7 +178,7 @@ sudo systemctl restart jenkins
 ```
 
 cat ~/.kube/config
-# Upload this file in Jenkins → Credentials → kubeconfig-credentials
+Upload this file in Jenkins → Credentials → kubeconfig-credentials
 
 Upload kubeconfig to Jenkins:
 - Jenkins -> Credentials -> Add Credential
