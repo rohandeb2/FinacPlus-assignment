@@ -11,7 +11,7 @@
 
 This project sets up a complete CI/CD pipeline that automatically builds and deploys an application whenever code is pushed to GitHub.
 
-The flow is:
+The flow is :
 1. Developer pushes code to GitHub
 2. GitHub sends a webhook to Jenkins
 3. Jenkins builds a Docker image
