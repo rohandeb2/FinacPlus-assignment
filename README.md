@@ -248,19 +248,6 @@ curl http://$(minikube ip):30080
 
 ---
 
-## Challenges and Fixes
-
-**Jenkins could not run docker commands**  
-Fix: `sudo usermod -aG docker jenkins && sudo systemctl restart jenkins`
-
-**kubectl failed - could not read Minikube certificates**  
-Fix: Copied kubeconfig to Jenkins home and fixed permissions (see Step 6)
-
-**GitHub webhook not triggering Jenkins**  
-Fix: Opened port 8080 in EC2 Security Group inbound rules
-
----
-
 ## Optional: Monitoring Recommendations
 
 - Deploy Prometheus + Grafana for pod CPU/memory metrics
@@ -270,13 +257,47 @@ Fix: Opened port 8080 in EC2 Security Group inbound rules
 
 ---
 
-## Useful Commands
+## Proof:
 
-```bash
-kubectl get pods -n production -w
-kubectl describe deployment cicd-demo -n production
-kubectl rollout history deployment/cicd-demo -n production
-kubectl rollout undo deployment/cicd-demo -n production
-sudo journalctl -u jenkins -f
-minikube status
-```
+<div align="center">
+  <img src="img/1.png" >
+</div>
+<div align="center">
+  <img src="img/2(2).png" >
+</div>
+<div align="center">
+  <img src="img/3(3).png" >
+</div>
+<div align="center">
+  <img src="img/4(4).png" >
+</div>
+<div align="center">
+  <img src="img/5(5).png" >
+</div>
+<div align="center">
+  <img src="img/6(6).png" >
+</div>
+<div align="center">
+  <img src="img/7(7).png" >
+</div>
+<div align="center">
+  <img src="img/8.png" >
+</div>
+<div align="center">
+  <img src="img/9.png" >
+</div>
+<div align="center">
+  <img src="img/10.png" >
+</div>
+<div align="center">
+  <img src="img/11.png" >
+</div>
+<div align="center">
+  <img src="img/12.png" >
+</div>
+<div align="center">
+  <img src="img/13.png" >
+</div>
+<div align="center">
+  <img src="img/14.png" >
+</div>
