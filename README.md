@@ -266,19 +266,19 @@ curl http://$(minikube ip):30080
   <img src="img/2(2).png" >
 </div>
 <div align="center">
-  <img src="img/3(3).png" >
+  <img src="img/3(2).png" >
 </div>
 <div align="center">
-  <img src="img/4(4).png" >
+  <img src="img/4(2).png" >
 </div>
 <div align="center">
-  <img src="img/5(5).png" >
+  <img src="img/5(2).png" >
 </div>
 <div align="center">
-  <img src="img/6(6).png" >
+  <img src="img/6(2).png" >
 </div>
 <div align="center">
-  <img src="img/7(7).png" >
+  <img src="img/7(2).png" >
 </div>
 <div align="center">
   <img src="img/8.png" >
