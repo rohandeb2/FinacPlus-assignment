@@ -19,11 +19,3 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`App running on port ${PORT}`);
 });
-// auto-trigger test
-// auto-trigger test1
-// auto-trigger test
-// auto-trigger test
-// auto-trigger test
-// fix: correct branch
-// auto-trigger test
-// fix: k8s permissions
