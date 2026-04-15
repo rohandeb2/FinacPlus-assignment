@@ -85,7 +85,6 @@ pipeline {
                     try {
                         docker.withRegistry('', 'docker-hub-credentials') {
                             docker.image("${env.FULL_IMAGE_NAME}").push()
-                            docker.image("${env.FULL_IMAGE_NAME}").push('v1')
                         }
                     } catch (Exception e) {
                         echo "❌ Push failed: ${e.message}"
