@@ -48,17 +48,12 @@ pipeline {
                 echo "==> Building Docker Image..."
                 script {
                     try {
-                        def imageTag = sh(
-                            script: "git rev-parse --short HEAD",
-                            returnStdout: true
-                        ).trim()
-
-                        env.IMAGE_TAG       = imageTag
-                        env.FULL_IMAGE_NAME = "${params.IMAGE_NAME}:${imageTag}"
-
+                        env.IMAGE_TAG = "v1"
+                        env.FULL_IMAGE_NAME = "${params.IMAGE_NAME}:${env.IMAGE_TAG}"
+        
                         echo "==> Image tag: ${env.FULL_IMAGE_NAME}"
-
-                        docker.build("${env.FULL_IMAGE_NAME}", ".")
+        
+                        docker.build(env.FULL_IMAGE_NAME, ".")
                     } catch (Exception e) {
                         echo "❌ Build failed: ${e.message}"
                         error("Stopping pipeline — build failed")
