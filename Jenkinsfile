@@ -48,11 +48,6 @@ pipeline {
                 echo "==> Building Docker Image..."
                 script {
                     try {
-                        env.IMAGE_TAG = "v1"
-                        env.FULL_IMAGE_NAME = "${params.IMAGE_NAME}:${env.IMAGE_TAG}"
-        
-                        echo "==> Image tag: ${env.FULL_IMAGE_NAME}"
-        
                         docker.build(env.FULL_IMAGE_NAME, ".")
                     } catch (Exception e) {
                         echo "❌ Build failed: ${e.message}"
